@@ -1,8 +1,14 @@
 import asyncio
 import unittest
 
+from app.agents.dispute_agent import draft_dispute_response
 from app.agents.reconciliation_agent import investigate_discrepancy
-from app.models.schemas import DiscrepancyEvent, DiscrepancyType, RecommendedAction
+from app.models.schemas import (
+    DiscrepancyEvent,
+    DiscrepancyType,
+    DisputeEvent,
+    RecommendedAction,
+)
 
 
 class TestReconciliationModule(unittest.TestCase):
@@ -68,6 +74,39 @@ class TestReconciliationModule(unittest.TestCase):
         result = asyncio.run(investigate_discrepancy(event))
         self.assertEqual(result.recommended_action, RecommendedAction.ESCALATE_TO_OPS)
         self.assertTrue(result.guardrail.requires_human_approval)
+
+
+class TestDisputeResolutionModule(unittest.TestCase):
+    def test_fraudulent_dispute_with_kyc_and_3ds_recommends_contest(self):
+        event = DisputeEvent(
+            dispute_id="dp_1Qx9941A",
+            transaction_reference="TXN-2026-9938B",
+            provider="STRIPE",
+            reason_code="fraudulent",
+            amount=2450.00,
+            currency="USD",
+            customer_email="john.doe@fintech.com",
+        )
+        result = asyncio.run(draft_dispute_response(event))
+        self.assertEqual(result.recommended_stance, "CONTEST")
+        self.assertTrue(result.guardrail.requires_human_approval)
+        self.assertEqual(len(result.audit_trail), 3)
+        self.assertIn("3-D Secure", result.rebuttal_letter)
+
+    def test_duplicate_processing_dispute_recommends_accept(self):
+        event = DisputeEvent(
+            dispute_id="dp_DUP001",
+            transaction_reference="TXN-DUP-001",
+            provider="STRIPE",
+            reason_code="duplicate_processing",
+            amount=250.00,
+            currency="USD",
+            customer_email="john.doe@fintech.com",
+        )
+        result = asyncio.run(draft_dispute_response(event))
+        self.assertEqual(result.recommended_stance, "ACCEPT")
+        self.assertTrue(result.guardrail.requires_human_approval)
+        self.assertIn("ACCEPT & REFUND", result.rebuttal_letter)
 
 
 if __name__ == "__main__":

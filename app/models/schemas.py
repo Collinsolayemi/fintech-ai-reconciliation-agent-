@@ -88,12 +88,24 @@ class BatchInvestigationResult(BaseModel):
     results: List[InvestigationResult]
 
 
+class DisputeDraftDiagnosis(BaseModel):
+    """Structured output schema returned by the LLM for dispute rebuttal drafting."""
+
+    recommended_stance: str  # CONTEST or ACCEPT
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    evidence_summary: str
+    rebuttal_letter: str
+    supporting_artifacts: List[str]
+
+
 class DisputeDraftResult(BaseModel):
     dispute_id: str
     transaction_reference: str
+    engine_mode: str = "deterministic_fallback"
     recommended_stance: str  # CONTEST or ACCEPT
     confidence: float = Field(..., ge=0.0, le=1.0)
     evidence_summary: str
     rebuttal_letter: str
     supporting_artifacts: List[str]
     guardrail: GuardrailDecision
+    audit_trail: List[AuditStep] = []

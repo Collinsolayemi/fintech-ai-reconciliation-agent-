@@ -71,3 +71,20 @@ async def get_ledger_entries(reference: str) -> dict:
         "entries": [],
         "note": "No posted ledger entries found for this reference.",
     }
+
+
+async def get_customer_kyc_profile(customer_email: str | None, reference: str) -> dict:
+    """
+    Read-only tool: Fetch customer KYC tier, verification status, and session signals
+    to support chargeback/dispute evidence compilation.
+    """
+    return {
+        "customer_email": customer_email or "unknown@fintech.com",
+        "reference": reference,
+        "kyc_tier": 2,
+        "kyc_status": "APPROVED",
+        "three_ds_authenticated": True,
+        "ip_match": True,
+        "device_fingerprint_matched": True,
+        "prior_dispute_count": 0,
+    }
