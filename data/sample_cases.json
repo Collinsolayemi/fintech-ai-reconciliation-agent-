@@ -1,0 +1,34 @@
+{
+  "discrepancies": [
+    {
+      "reference": "TXN-2026-9941A",
+      "provider": "STRIPE",
+      "discrepancy_type": "MISSING_LEDGER_ENTRY",
+      "expected_amount": 75.00,
+      "actual_amount": 0.00,
+      "currency": "USD",
+      "raw_details": "Stripe payout settled $75.00, no matching ledger credit."
+    },
+    {
+      "reference": "TXN-2026-9921C",
+      "provider": "PAYSTACK",
+      "discrepancy_type": "AMOUNT_MISMATCH",
+      "expected_amount": 1000.00,
+      "actual_amount": 970.70,
+      "currency": "USD",
+      "raw_details": "Gateway settled net after 2.9% + $0.30 processing fee."
+    }
+  ],
+  "disputes": [
+    {
+      "dispute_id": "dp_1Qx9941A",
+      "transaction_reference": "TXN-2026-9938B",
+      "provider": "STRIPE",
+      "reason_code": "fraudulent",
+      "amount": 2450.00,
+      "currency": "USD",
+      "customer_email": "john.doe@fintech.com",
+      "notes": "Cardholder claims unrecognized API subscription charge."
+    }
+  ]
+}
