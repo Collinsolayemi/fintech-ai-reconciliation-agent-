@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -42,24 +44,48 @@ class DisputeEvent(BaseModel):
 
 class AuditStep(BaseModel):
     tool_name: str
-    arguments: dict[str, Any]
+    arguments: Dict[str, Any]
     observation_summary: str
 
 
 class GuardrailDecision(BaseModel):
     requires_human_approval: bool
     auto_executable: bool
-    reasons: list[str]
+    reasons: List[str]
+
+
+class AgentDiagnosis(BaseModel):
+    """Structured output schema returned by the LLM after tool-based investigation."""
+
+    root_cause: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    recommended_action: RecommendedAction
+    reasoning_summary: str
 
 
 class InvestigationResult(BaseModel):
     reference: str
+    engine_mode: str = Field(
+        default="deterministic_fallback",
+        description="Whether diagnosis came from 'gemini_llm' or 'deterministic_fallback'",
+    )
     root_cause: str
     confidence: float = Field(..., ge=0.0, le=1.0)
     recommended_action: RecommendedAction
     reasoning_summary: str
     guardrail: GuardrailDecision
-    audit_trail: list[AuditStep] = []
+    audit_trail: List[AuditStep] = []
+
+
+class BatchInvestigationRequest(BaseModel):
+    discrepancies: List[DiscrepancyEvent]
+
+
+class BatchInvestigationResult(BaseModel):
+    total: int
+    auto_executable_count: int
+    requires_approval_count: int
+    results: List[InvestigationResult]
 
 
 class DisputeDraftResult(BaseModel):
@@ -69,5 +95,5 @@ class DisputeDraftResult(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     evidence_summary: str
     rebuttal_letter: str
-    supporting_artifacts: list[str]
+    supporting_artifacts: List[str]
     guardrail: GuardrailDecision
