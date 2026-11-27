@@ -54,7 +54,7 @@ def _draft_with_llm(
             temperature=0.1,
         ),
     )
-    return DisputeDraftDiagnosis.model_validate_json(response.text)
+    return DisputeDraftDiagnosis.model_validate_json(response.text or "{}")
 
 
 def _draft_deterministically(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Optional
 import httpx
 from app.core.config import settings
 
@@ -73,7 +74,7 @@ async def get_ledger_entries(reference: str) -> dict:
     }
 
 
-async def get_customer_kyc_profile(customer_email: str | None, reference: str) -> dict:
+async def get_customer_kyc_profile(customer_email: Optional[str], reference: str) -> dict:
     """
     Read-only tool: Fetch customer KYC tier, verification status, and session signals
     to support chargeback/dispute evidence compilation.

@@ -56,7 +56,7 @@ def _analyze_with_llm(
             temperature=0.1,
         ),
     )
-    return AgentDiagnosis.model_validate_json(response.text)
+    return AgentDiagnosis.model_validate_json(response.text or "{}")
 
 
 def _analyze_deterministically(
