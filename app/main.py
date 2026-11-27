@@ -1,16 +1,24 @@
 from __future__ import annotations
 
 import asyncio
-from fastapi import FastAPI
+from typing import List
+from fastapi import FastAPI, HTTPException
 from app.agents.dispute_agent import draft_dispute_response
 from app.agents.reconciliation_agent import investigate_discrepancy
 from app.models.schemas import (
+    ActionExecutionRequest,
+    ActionExecutionResult,
     BatchInvestigationRequest,
     BatchInvestigationResult,
     DiscrepancyEvent,
     DisputeDraftResult,
     DisputeEvent,
     InvestigationResult,
+)
+from app.rag.knowledge_base import list_all_cases
+from app.services.action_executor import (
+    execute_guardrailed_action,
+    get_execution_history,
 )
 
 app = FastAPI(
@@ -47,3 +55,21 @@ async def run_batch_investigation(payload: BatchInvestigationRequest):
 @app.post("/agent/disputes/draft", response_model=DisputeDraftResult)
 async def run_dispute_draft(event: DisputeEvent):
     return await draft_dispute_response(event)
+
+
+@app.post("/agent/actions/execute", response_model=ActionExecutionResult)
+async def run_action_execution(req: ActionExecutionRequest):
+    try:
+        return await execute_guardrailed_action(req)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@app.get("/agent/actions/history", response_model=List[ActionExecutionResult])
+async def action_history():
+    return get_execution_history()
+
+
+@app.get("/agent/rag/cases")
+async def rag_cases():
+    return {"total": len(list_all_cases()), "cases": list_all_cases()}

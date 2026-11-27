@@ -1,4 +1,8 @@
-HISTORICAL_CASES = [
+from __future__ import annotations
+
+from typing import Dict, List
+
+HISTORICAL_CASES: List[Dict[str, str]] = [
     {
         "pattern": "MISSING_LEDGER_ENTRY",
         "error_signature": "504 Gateway Timeout on webhook delivery",
@@ -18,7 +22,6 @@ HISTORICAL_CASES = [
         "recommended_action": "REVERSE_DUPLICATE",
     },
 ]
-
 
 DISPUTE_PLAYBOOKS = {
     "fraudulent": {
@@ -46,7 +49,7 @@ DISPUTE_PLAYBOOKS = {
 }
 
 
-def retrieve_similar_cases(discrepancy_type: str) -> list[dict]:
+def retrieve_similar_cases(discrepancy_type: str) -> List[Dict[str, str]]:
     """Retrieve historical resolution patterns (replace with pgvector similarity search)."""
     return [case for case in HISTORICAL_CASES if case["pattern"] == discrepancy_type]
 
@@ -60,3 +63,26 @@ def retrieve_dispute_playbook(reason_code: str) -> dict:
             "guidance": "Review evidence manually before contesting.",
         },
     )
+
+
+def record_resolution_outcome(
+    pattern: str,
+    error_signature: str,
+    resolution: str,
+    recommended_action: str,
+) -> Dict[str, str]:
+    """Feed a verified HITL resolution back into the RAG knowledge base."""
+    entry = {
+        "pattern": pattern,
+        "error_signature": error_signature,
+        "resolution": resolution,
+        "recommended_action": recommended_action,
+    }
+    if entry not in HISTORICAL_CASES:
+        HISTORICAL_CASES.append(entry)
+    return entry
+
+
+def list_all_cases() -> List[Dict[str, str]]:
+    """Return all historical and learned resolution cases."""
+    return list(HISTORICAL_CASES)

@@ -4,11 +4,14 @@ import unittest
 from app.agents.dispute_agent import draft_dispute_response
 from app.agents.reconciliation_agent import investigate_discrepancy
 from app.models.schemas import (
+    ActionExecutionRequest,
     DiscrepancyEvent,
     DiscrepancyType,
     DisputeEvent,
     RecommendedAction,
 )
+from app.rag.knowledge_base import list_all_cases
+from app.services.action_executor import execute_guardrailed_action, get_execution_history
 
 
 class TestReconciliationModule(unittest.TestCase):
@@ -107,6 +110,47 @@ class TestDisputeResolutionModule(unittest.TestCase):
         self.assertEqual(result.recommended_stance, "ACCEPT")
         self.assertTrue(result.guardrail.requires_human_approval)
         self.assertIn("ACCEPT & REFUND", result.rebuttal_letter)
+
+
+class TestActionExecutorAndRagModule(unittest.TestCase):
+    def test_high_value_action_without_approval_is_blocked(self):
+        req = ActionExecutionRequest(
+            reference="TXN-BLOCK-01",
+            action=RecommendedAction.REPLAY_WEBHOOK,
+            amount=5000.00,
+            confidence=0.96,
+        )
+        with self.assertRaises(PermissionError):
+            asyncio.run(execute_guardrailed_action(req))
+
+    def test_low_value_auto_action_executes_without_human_approval(self):
+        req = ActionExecutionRequest(
+            reference="TXN-AUTO-01",
+            action=RecommendedAction.REPLAY_WEBHOOK,
+            amount=50.00,
+            confidence=0.95,
+        )
+        result = asyncio.run(execute_guardrailed_action(req))
+        self.assertEqual(result.status, "EXECUTED")
+        self.assertEqual(result.approved_by, "AUTO_GUARDRAIL_POLICY")
+        self.assertTrue(len(get_execution_history()) >= 1)
+
+    def test_hitl_approved_fee_adjustment_executes_and_learns_in_rag(self):
+        initial_count = len(list_all_cases())
+        req = ActionExecutionRequest(
+            reference="TXN-FEE-99",
+            action=RecommendedAction.POST_FEE_ADJUSTMENT,
+            amount=29.30,
+            confidence=0.92,
+            approved_by="admin@fintech.com",
+            discrepancy_type=DiscrepancyType.AMOUNT_MISMATCH,
+            resolution_notes="Confirmed 2.9% + $0.30 Paystack fee deduction.",
+        )
+        result = asyncio.run(execute_guardrailed_action(req))
+        self.assertEqual(result.status, "EXECUTED")
+        self.assertIsNotNone(result.ledger_journal_id)
+        self.assertTrue(result.learned_in_rag)
+        self.assertEqual(len(list_all_cases()), initial_count + 1)
 
 
 if __name__ == "__main__":

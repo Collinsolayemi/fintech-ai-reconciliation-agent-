@@ -109,3 +109,30 @@ class DisputeDraftResult(BaseModel):
     supporting_artifacts: List[str]
     guardrail: GuardrailDecision
     audit_trail: List[AuditStep] = []
+
+
+class ActionExecutionRequest(BaseModel):
+    reference: str
+    action: RecommendedAction
+    amount: float
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    currency: str = "USD"
+    approved_by: Optional[str] = Field(
+        default=None,
+        description="Admin email/ID required when guardrail requires human approval",
+    )
+    resolution_notes: Optional[str] = None
+    discrepancy_type: Optional[DiscrepancyType] = None
+
+
+class ActionExecutionResult(BaseModel):
+    execution_id: str
+    reference: str
+    action: RecommendedAction
+    status: str  # EXECUTED, REJECTED_BY_GUARDRAIL
+    idempotency_key: str
+    approved_by: Optional[str] = None
+    ledger_journal_id: Optional[str] = None
+    message: str
+    learned_in_rag: bool = False
+    executed_at: str
